@@ -19,21 +19,19 @@ use PhpMqtt\Client\Exceptions\ProtocolViolationException;
 use PhpMqtt\Client\Exceptions\RepositoryException;
 use PhpMqtt\Client\Facades\MQTT;
 
-class RecordScore implements ShouldQueue
+class ListenSensorData implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public string $pubTopic = "0101/pub";
     public string $subTopic = "0101/sub";
-    public string $payload;
 
 
     /**
      * Create a new job instance.
      */
-    public function __construct(string $payload)
+    public function __construct()
     {
-        $this->payload = $payload;
+
     }
 
     /**
@@ -48,14 +46,13 @@ class RecordScore implements ShouldQueue
             }
             return;
         }
-
-        \Cache::put("budi-".$this->payload, $this->payload);
         try {
-            $mqttClient->publish($this->pubTopic, $this->payload);
+            Log::debug("Starting Listen");
+            \Cache::put("budi-start", "Starting Listen");
             $mqttClient->subscribe($this->subTopic, function (string $topic, string $message) use ($mqttClient) {
+                \Cache::put("budi", $message);
+                Log::debug("Incoming Message From Topic :". $topic." With message ".$message );
                 $data = explode(',', $message);
-
-                \Cache::put("budi-msg", $message);
                 if (count($data) == 3) {
                     $fightParticipant = FightParticipant::query()->findOrFail(trim($data[0]));
                     $type = ScoreType::tryFrom(trim($data[1]));
@@ -68,7 +65,7 @@ class RecordScore implements ShouldQueue
                     }
                 }
             }, 1);
-            $mqttClient->loop(true, true);
+            $mqttClient->loop(false);
         } catch (DataTransferException|RepositoryException|InvalidMessageException|ProtocolViolationException|MqttClientException $e) {
             Log::error("Job Error", [
                 $e->getMessage()

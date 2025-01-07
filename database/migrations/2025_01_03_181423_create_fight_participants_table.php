@@ -1,5 +1,6 @@
 <?php
 
+use App\FightResult;
 use App\Models\Fight;
 use App\Models\Player;
 use Illuminate\Database\Migrations\Migration;
@@ -17,7 +18,7 @@ return new class extends Migration
             $table->id();
             $table->foreignIdFor(Fight::class);
             $table->foreignIdFor(Player::class);
-            $table->enum('result', ['-', 'win', 'lose', 'draw'])->default('-');
+            $table->enum('result', array_column(FightResult::cases(), 'value'))->default(FightResult::NA->value);
             $table->timestamps();
         });
     }

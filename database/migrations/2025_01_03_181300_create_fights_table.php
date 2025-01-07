@@ -1,5 +1,6 @@
 <?php
 
+use App\FightStatus;
 use App\Models\Category;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -16,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignIdFor(Category::class);
             $table->dateTime('date');
-            $table->enum('status', ['waiting', 'matching', 'done'])->default('waiting');
+            $table->enum('status', array_column(FightStatus::cases(), 'value'))->default(FightStatus::WAITING->value);
             $table->timestamps();
         });
     }
