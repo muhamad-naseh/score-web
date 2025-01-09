@@ -15,7 +15,7 @@ class Fight extends Model
 
     protected $casts = [
         'status' => FightStatus::class,
-        'date' => 'date'
+        'date' => 'datetime'
     ];
 
     public $timestamps = true;

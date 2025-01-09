@@ -2,16 +2,22 @@
 
 namespace App\Filament\Resources;
 
+use App\FightStatus;
 use App\Filament\Resources\FightResource\Pages;
-use App\Filament\Resources\FightResource\RelationManagers;
+use App\Livewire\FightScoreHistory;
+use App\Livewire\ScoreCard;
 use App\Models\Fight;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists\Components\Grid;
+use Filament\Infolists\Components\Livewire;
+use Filament\Infolists\Components\Section;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class FightResource extends Resource
 {
@@ -64,9 +70,10 @@ class FightResource extends Resource
                     ->dateTime()
                     ->dateTimeTooltip()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('status'),
+                Tables\Columns\TextColumn::make('status')
+                    ->badge(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                    ->dateTime("D, d M Y H:i:s")
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
@@ -80,11 +87,18 @@ class FightResource extends Resource
             ->actions([
                 Tables\Actions\Action::make("Start Fight")
                     ->color('success')
+                    ->icon('heroicon-m-play')
+                    ->hidden(fn(Fight $record) => $record->status == FightStatus::COMPLETED)
                     ->url(fn(Fight $record) => self::getUrl('start', [
                         'record' => $record
                     ])),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->disabled(fn(Fight $record) => $record->status == FightStatus::COMPLETED)
+                    ->hidden(fn(Fight $record) => $record->status == FightStatus::COMPLETED)
+                    ->hiddenLabel(),
+                Tables\Actions\DetachAction::make()->hiddenLabel()->requiresConfirmation()
+//                Tables\Actions\ViewAction::make()
+//                    ->hiddenLabel(),
 
             ])
             ->bulkActions([
@@ -93,15 +107,58 @@ class FightResource extends Resource
                 ]),
             ])
             ->modifyQueryUsing(function (Builder $query) {
-                return $query->with(['fightParticipants.player']);
+                return $query->with(['fightParticipants.player'])->orderByDesc('created_at');
             });
     }
 
-    public static function getRelations(): array
+
+    public static function infolist(Infolist $infolist): Infolist
     {
-        return [
-//            RelationManagers\PlayersRelationManager::class
-        ];
+        return $infolist
+            ->schema([
+                Grid::make([
+                    'default' => 5,
+                ])
+                    ->schema([
+                        Section::make("Score Card")
+                            ->description('lorem')
+                            ->columnSpan(3)
+                            ->key('name')
+                            ->schema([
+                                Livewire::make(ScoreCard::class)
+                                    ->key('score-history'),
+                                Grid::make([
+                                    'default' => 3,
+                                ])
+                                    ->schema([
+                                        TextEntry::make('status')
+                                            ->badge(),
+                                        TextEntry::make('date')
+                                            ->dateTime("D, d M Y H:i:s")
+                                            ->label('Fight Date')
+                                            ->icon('heroicon-m-clock'),
+                                        TextEntry::make('updated_at')
+                                            ->dateTime("D, d M Y H:i:s")
+                                            ->label('Completed At')
+                                            ->icon('heroicon-m-clock')
+                                    ])
+
+                            ]),
+                        Section::make('Score Log')
+                            ->description('Score Log History')
+                            ->columnSpan(2)
+//                            ->headerActions([
+//                                Action::make('resetStars')
+//                                    ->icon('heroicon-m-x-mark')
+//                                    ->color('danger')
+//                                    ->dispatch('reload-score-card'),
+//                            ])
+                            ->schema([
+                                Livewire::make(FightScoreHistory::class)
+                                    ->key('score-history')
+                            ])->compact(),
+                    ])
+            ]);
     }
 
     public static function getPages(): array

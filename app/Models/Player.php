@@ -13,7 +13,7 @@ class Player extends Model
 
     protected $table = 'players';
 
-    protected $fillable = ['name', 'birth', 'gender', 'team', 'address', 'age', 'weight'];
+    protected $fillable = ['name', 'birth', 'gender', 'team', 'address', 'age', 'weight', 'category_id'];
 
     public $timestamps = true;
 

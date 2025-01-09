@@ -9,4 +9,6 @@ use Filament\Resources\Pages\ViewRecord;
 class ViewFight extends ViewRecord
 {
     protected static string $resource = FightResource::class;
+
+    protected static ?string $title =  'Detail Fight';
 }
